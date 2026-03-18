@@ -1,0 +1,27 @@
+# API Security Audit — Sample configuration
+# Run: python main.py --config examples/sample_config.yaml
+
+base_url: "https://jsonplaceholder.typicode.com"
+
+# Bearer token (leave empty for unauthenticated APIs)
+token: ""
+
+# Endpoints to scan
+# Use {id} placeholder to enable BOLA probing
+endpoints:
+  - /users
+  - /users/{id}
+  - /posts
+  - /posts/{id}
+
+# How many rapid requests to send before expecting a 429
+rate_limit_threshold: 15
+
+# ID range to probe for BOLA checks
+bola_id_range: [1, 5]
+
+# Request timeout in seconds
+timeout: 10
+
+# Set to false if testing against self-signed certs (dev only)
+verify_ssl: true
