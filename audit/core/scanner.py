@@ -1,7 +1,7 @@
 from audit.core.config import ScanConfig
 from audit.core.models import AuditResult
 from audit.utils.http_client import HttpClient
-from audit.checks import authentication, headers, data_exposure, rate_limiting, bola, injection, bfla, ssrf
+from audit.checks import authentication, headers, data_exposure, rate_limiting, bola, injection, bfla, ssrf, business_flows, inventory
 
 
 CHECKS = [
@@ -10,9 +10,11 @@ CHECKS = [
     ("Data Exposure (API3:2023)", data_exposure.check),
     ("Rate Limiting (API4:2023)", rate_limiting.check),
     ("Function-Level Authorization (API5:2023)", bfla.check),
+    ("Business Flows (API6:2023)", business_flows.check),
     ("SSRF (API7:2023)", ssrf.check),
     ("Security Headers (API8:2023)", headers.check),
     ("Injection (API8:2023)", injection.check),
+    ("Inventory Management (API9:2023)", inventory.check),
 ]
 
 

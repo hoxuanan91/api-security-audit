@@ -31,8 +31,10 @@ FRIENDLY_CHECK_NAMES = {
     "API3:2023": "Sensitive Data Leaked",
     "API4:2023": "No Rate Limiting",
     "API5:2023": "Admin Endpoints Exposed",
+    "API6:2023": "Unprotected Business Flows",
     "API7:2023": "Request Forgery (SSRF)",
     "API8:2023": "Security Misconfiguration",
+    "API9:2023": "Improper API Inventory",
 }
 
 # Plain-English explanation + concrete real-world example per check
@@ -117,6 +119,19 @@ PLAIN_ENGLISH = {
         ),
         "impact": "Exposure of cloud credentials, internal network access, full server compromise.",
     },
+    "API6:2023": {
+        "what": (
+            "Critical business actions — like logging in, resetting a password, or placing an order — "
+            "can be triggered unlimited times by a script with no slowdown or block. "
+            "There is no protection against automated abuse."
+        ),
+        "example": (
+            "An attacker writes a script that tries 50,000 username/password combinations "
+            "on /api/login in minutes. Without any rate limit or lockout, "
+            "every attempt is processed — making account takeover trivial."
+        ),
+        "impact": "Account takeover via credential stuffing, mass fake registrations, coupon/promo abuse.",
+    },
     "API8:2023": {
         "what": (
             "The server is missing standard security settings that modern browsers "
@@ -130,6 +145,19 @@ PLAIN_ENGLISH = {
             "site uses HTTPS."
         ),
         "impact": "Enables XSS attacks, clickjacking, cookie theft, and man-in-the-middle attacks.",
+    },
+    "API9:2023": {
+        "what": (
+            "Old or forgotten API versions are still running alongside the current one. "
+            "These shadow versions often lack the security patches applied to the latest version, "
+            "giving attackers an easy bypass."
+        ),
+        "example": (
+            "A team releases /api/v3 with proper authentication. But /api/v1 — "
+            "launched two years ago and forgotten — is still live and accepts requests "
+            "without any auth token, because security was added only to v3."
+        ),
+        "impact": "Attackers exploit unpatched old versions to bypass security controls added later.",
     },
 }
 
