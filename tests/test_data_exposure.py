@@ -34,7 +34,7 @@ class TestDataExposure:
 
         findings = check(config, client)
 
-        fails = [f for f in findings if f.status == Status.FAIL and "credit_card" in f.title]
+        fails = [f for f in findings if f.status == Status.FAIL and "Credit card" in f.title]
         assert len(fails) >= 1
         assert fails[0].severity == Severity.CRITICAL
 
@@ -47,7 +47,7 @@ class TestDataExposure:
 
         findings = check(config, client)
 
-        fails = [f for f in findings if f.status == Status.FAIL and "jwt" in f.title]
+        fails = [f for f in findings if f.status == Status.FAIL and "JWT" in f.title]
         assert len(fails) >= 1
         assert fails[0].severity == Severity.HIGH
 

@@ -3,10 +3,59 @@ API3:2023 - Broken Object Property Level Authorization
 Checks whether API responses leak sensitive data (PII, secrets, stack traces).
 """
 import json
+import re
 from audit.core.models import Finding, Severity, Status
 from audit.core.config import ScanConfig
 from audit.utils.http_client import HttpClient
 from audit.utils.patterns import PATTERNS
+
+# Human-readable description for each pattern type
+PATTERN_DESCRIPTIONS = {
+    "credit_card":    "Credit card number",
+    "ssn_fr":         "French social security number (Numéro de sécurité sociale)",
+    "iban":           "Bank account number (IBAN)",
+    "jwt":            "Authentication token (JWT)",
+    "api_key":        "API key or secret",
+    "stack_trace":    "Application stack trace (internal error detail)",
+    "internal_path":  "Internal server file path",
+    "email":          "Email address",
+    "phone_fr":       "French phone number",
+    "phone_intl":     "International phone number",
+}
+
+
+def _mask(value: str, pattern_name: str) -> str:
+    """Return a masked version of the matched value safe to display in a report."""
+    v = value.strip()
+    if pattern_name == "credit_card":
+        digits = re.sub(r"\D", "", v)
+        if len(digits) >= 8:
+            return digits[:4] + " **** **** " + digits[-4:]
+        return "*" * len(v)
+    if pattern_name in ("ssn_fr", "iban"):
+        return v[:4] + "*" * max(0, len(v) - 8) + v[-4:] if len(v) > 8 else "*" * len(v)
+    if pattern_name == "jwt":
+        return v[:20] + "...[truncated]"
+    if pattern_name == "api_key":
+        # Show key name but mask the value part
+        eq = v.find("=") + 1 or v.find(":") + 1
+        prefix = v[:eq] if eq else ""
+        secret = v[eq:]
+        return prefix + secret[:4] + "*" * min(12, len(secret) - 4)
+    # For less sensitive types show as-is
+    return v[:60]
+
+
+def _surrounding_context(body: str, match, chars: int = 60) -> str:
+    """Return a snippet of the response body around the match position."""
+    start = max(0, match.start() - chars)
+    end = min(len(body), match.end() + chars)
+    snippet = body[start:end].replace("\n", " ").replace("\r", "")
+    if start > 0:
+        snippet = "..." + snippet
+    if end < len(body):
+        snippet = snippet + "..."
+    return snippet
 
 
 def check(config: ScanConfig, client: HttpClient) -> list[Finding]:
@@ -44,14 +93,24 @@ def check(config: ScanConfig, client: HttpClient) -> list[Finding]:
                     "phone_fr": Severity.MEDIUM,
                     "phone_intl": Severity.MEDIUM,
                 }
+
+                all_matches = pattern.findall(body)
+                count = len(all_matches)
+                description = PATTERN_DESCRIPTIONS.get(pattern_name, pattern_name)
+                masked = _mask(match.group(0), pattern_name)
+                context = _surrounding_context(body, match)
+
                 findings.append(Finding(
                     check_id="API3:2023",
-                    title=f"Sensitive data exposed: {pattern_name}",
+                    title=f"Sensitive data exposed: {description}",
                     severity=severity_map.get(pattern_name, Severity.MEDIUM),
                     status=Status.FAIL,
-                    detail=f"Pattern '{pattern_name}' matched in response from {url}.",
+                    detail=(
+                        f"{count} occurrence(s) of {description} detected in the response from {url}. "
+                        f"Example value: {masked}"
+                    ),
                     recommendation="Strip sensitive fields from API responses. Apply field-level access control.",
-                    evidence=f"Matched: {match.group(0)[:40]}...",
+                    evidence=f"Context: {context}",
                 ))
 
         # Check for verbose error responses (stack traces, internal paths)
